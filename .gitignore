@@ -1,3 +1,5 @@
+dask-worker-space/
+*.parquet
 data/
 
 # Byte-compiled / optimized / DLL files

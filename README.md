@@ -19,4 +19,6 @@ for file in $(ls *.zip); do
     /vsizip//data/$file \
     -lco COMPRESSION=ZSTD
 done
+rm *.zip
+cd ..
 ```
