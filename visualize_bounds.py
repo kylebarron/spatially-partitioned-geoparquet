@@ -2,10 +2,18 @@ import json
 from pathlib import Path
 from typing import List
 
+import click
 import geojson
 import pyarrow.parquet as pq
 import pygeos
 from keplergl_cli import Visualize
+
+
+class PathType(click.Path):
+    """A Click path argument that returns a pathlib Path, not a string"""
+
+    def convert(self, value, param, ctx):
+        return Path(super().convert(value, param, ctx))
 
 
 def create_geo_feature_from_rg(rg: pq.RowGroupMetaData) -> geojson.Feature:
@@ -35,9 +43,15 @@ def create_geo_feature_from_rg(rg: pq.RowGroupMetaData) -> geojson.Feature:
     )
 
 
-def main():
-    input_dir = Path("shuffled.parquet")
-    meta = pq.read_metadata(input_dir / "_metadata")
+@click.command()
+@click.option(
+    "-i",
+    "--input",
+    type=PathType(readable=True, dir_okay=True, file_okay=False),
+    help="Path to input Parquet dataset",
+)
+def main(input: Path):
+    meta = pq.read_metadata(input / "_metadata")
 
     features: List[geojson.Feature] = []
     for i in range(meta.num_row_groups):
@@ -47,3 +61,7 @@ def main():
 
     fc = geojson.FeatureCollection(features)
     Visualize(fc)
+
+
+if __name__ == "__main__":
+    main()

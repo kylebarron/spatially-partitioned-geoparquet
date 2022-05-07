@@ -10,11 +10,18 @@ import pyarrow.parquet as pq
 from numpy.typing import NDArray
 
 
+class PathType(click.Path):
+    """A Click path argument that returns a pathlib Path, not a string"""
+
+    def convert(self, value, param, ctx):
+        return Path(super().convert(value, param, ctx))
+
+
 def create_hilbert_quantiles(
-    dataset: pa.dataset.Dataset, n_row_groups: int
+    dataset: pa.dataset.Dataset, num_row_groups: int
 ) -> NDArray[np.uint32]:
     arr = dataset.to_table(columns=["hilbert_distance"])["hilbert_distance"].to_numpy()
-    quantile_groups = np.linspace(0, 1, n_row_groups + 1)
+    quantile_groups = np.linspace(0, 1, num_row_groups + 1)
     return np.quantile(arr, quantile_groups, method="nearest")
 
 
@@ -33,20 +40,39 @@ def select(dataset: pa.dataset.Dataset, low: int, high: int) -> pa.Table:
     return table
 
 
-def main():
-    n_row_groups = 2000
-    input_dir = Path("with_hilbert_distance.parquet")
-    output_dir = Path("shuffled.parquet")
-    output_dir.mkdir()
+@click.command()
+@click.option(
+    "-i",
+    "--input",
+    type=PathType(readable=True, dir_okay=True, file_okay=False),
+    help="Path to input Parquet dataset",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=PathType(writable=True, dir_okay=True, file_okay=False),
+    help="Path to output Parquet dataset",
+)
+@click.option(
+    "-n",
+    "--num-row-groups",
+    type=int,
+    default=2000,
+    show_default=True,
+    help="Number of row groups for output Parquet dataset",
+)
+def main(input: Path, output: Path, num_row_groups: int):
+    num_row_groups = 2000
+    output.mkdir()
 
-    dataset = pa.dataset.parquet_dataset(input_dir / "_metadata")
-    quantiles = create_hilbert_quantiles(dataset, n_row_groups)
+    dataset = pa.dataset.parquet_dataset(input / "_metadata")
+    quantiles = create_hilbert_quantiles(dataset, num_row_groups)
 
     metadata_collector: List[pq.FileMetaData] = []
-    with click.progressbar(length=n_row_groups, label="Shuffling data") as bar:
+    with click.progressbar(length=num_row_groups, label="Shuffling data") as bar:
         for low, high in zip(quantiles[:-1], quantiles[1:]):
             table = select(dataset, low, high)
-            out_path = output_dir / f"{low}.parquet"
+            out_path = output / f"{low}.parquet"
             with pq.ParquetWriter(
                 out_path,
                 schema=table.schema,
@@ -67,7 +93,7 @@ def main():
     for _meta in metadata_collector[1:]:
         full_metadata.append_row_groups(_meta)
 
-    full_metadata.write_metadata_file(output_dir / "_metadata")
+    full_metadata.write_metadata_file(output / "_metadata")
 
 
 if __name__ == "__main__":

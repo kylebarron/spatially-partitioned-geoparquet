@@ -12,6 +12,13 @@ import pygeos
 from dask_geopandas.hilbert_distance import _hilbert_distance
 
 
+class PathType(click.Path):
+    """A Click path argument that returns a pathlib Path, not a string"""
+
+    def convert(self, value, param, ctx):
+        return Path(super().convert(value, param, ctx))
+
+
 def find_total_bounds(parquet_paths: List[Path]) -> Tuple[float, ...]:
     bounds = [np.inf, np.inf, -np.inf, -np.inf]
     for path in parquet_paths:
@@ -50,12 +57,23 @@ def get_num_row_groups(parquet_paths: List[Path]) -> int:
     return n
 
 
-def main():
-    input_dir = "data"
-    output_dir = Path("with_hilbert_distance.parquet")
-    output_dir.mkdir(exist_ok=True)
+@click.command()
+@click.option(
+    "-i",
+    "--input",
+    type=PathType(readable=True, dir_okay=True, file_okay=False),
+    help="Path to input Parquet dataset",
+)
+@click.option(
+    "-o",
+    "--output",
+    type=PathType(writable=True, dir_okay=True, file_okay=False),
+    help="Path to output Parquet dataset",
+)
+def main(input: Path, output: Path):
+    output.mkdir(exist_ok=False)
 
-    parquet_paths = list(Path(input_dir).glob("*.parquet"))
+    parquet_paths = list(Path(input).glob("*.parquet"))
     total_bounds = find_total_bounds(parquet_paths)
     n_row_groups = get_num_row_groups(parquet_paths)
 
@@ -80,7 +98,7 @@ def main():
             )
 
             table = pa.Table.from_pandas(to_write)
-            out_path = output_dir / f"part.{i}.parquet"
+            out_path = output / f"part.{i}.parquet"
             with pq.ParquetWriter(
                 out_path,
                 schema=table.schema,
@@ -102,7 +120,7 @@ def main():
     for _meta in metadata_collector[1:]:
         full_metadata.append_row_groups(_meta)
 
-    full_metadata.write_metadata_file(output_dir / "_metadata")
+    full_metadata.write_metadata_file(output / "_metadata")
 
 
 if __name__ == "__main__":
