@@ -1,6 +1,6 @@
-## Exploring spatially-partitioned GeoParquet
+# Exploring spatially-partitioned GeoParquet
 
-### Install
+## Install
 
 Using Poetry:
 
@@ -10,15 +10,18 @@ poetry install
 
 This will install packages from the lockfile and ensure that you're using the exact same environment of packages as me.
 
-### Spatially partitioning the data
+## Spatially partitioning the data
+
+### Preprocessing
 
 #### Step 1: Download data
 
 Download source files from Microsoft's website:
 
 ```bash
-> mkdir -p data/orig/
-> wget -P data/orig/ -i files.txt
+> mkdir -p data/source/
+# With 8 threads:
+> cat files.txt | xargs -n 1 -P 8 wget -q -P data/source/
 ```
 
 #### Step 2: Preprocess data
@@ -27,14 +30,14 @@ The data are distributed by Microsoft in zipped GeoJSON, which is not a performa
 
 ```bash
 cd data
-mkdir 1_preprocessed_parquet
-for file in $(ls orig/*.zip); do
+mkdir -p preprocessed
+for file in $(ls source/*.zip); do
   state=$(basename $file .geojson.zip)
   echo $state
   docker run --rm -it -v $(pwd):/data osgeo/gdal:latest \
     ogr2ogr \
-    /data/1_preprocessed_parquet/$state.parquet \
-    /vsizip//data/orig/$file \
+    /data/preprocessed/$state.parquet \
+    /vsizip//data/$file \
     -lco COMPRESSION=ZSTD
 done
 cd ..
