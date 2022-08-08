@@ -62,7 +62,6 @@ def select(dataset: pa.dataset.Dataset, low: int, high: int) -> pa.Table:
     help="Number of row groups for output Parquet dataset",
 )
 def main(input: Path, output: Path, num_row_groups: int):
-    num_row_groups = 2000
     output.mkdir()
 
     dataset = pa.dataset.parquet_dataset(input / "_metadata")

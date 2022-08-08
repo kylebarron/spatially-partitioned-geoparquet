@@ -42,3 +42,11 @@ This took around 2 hours on my computer
 ```
 poetry run python manual_shuffle.py  26022.65s user 2808.25s system 381% cpu 2:06:05.57 total
 ```
+
+### Convert to GeoArrow
+
+```bash
+poetry run python to_geoarrow.py \
+    --input ../data/manual-hilbert-shuffle/partitioned.parquet \
+    --output ../data/manual-hilbert-shuffle/partitioned_geoarrow.parquet
+```
