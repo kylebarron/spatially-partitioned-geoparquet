@@ -8,10 +8,14 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.8"
 rstar = "^0.1.0"
+pandas = "^1.4.2"
+numpy = "^1.22.4"
+pyarrow = "^9.0.0"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.10.1"
 black = "^22.3.0"
+ipykernel = "^6.13.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
