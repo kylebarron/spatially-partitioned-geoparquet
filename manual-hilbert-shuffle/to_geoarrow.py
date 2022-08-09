@@ -56,13 +56,14 @@ def main(input: Path, output: Path):
     output.mkdir()
 
     metadata_collector: List[pq.FileMetaData] = []
-    file_names: List[str] = []
+    # Note these must be relative to the root
+    relative_file_paths: List[str] = []
     with click.progressbar(
         length=meta.num_row_groups, label="Converting to geoarrow encoding"
     ) as bar:
         for input_path in input.glob("*.parquet"):
             output_path = output / input_path.name
-            file_names.append(str(output_path))
+            relative_file_paths.append(str(input_path.name))
 
             table = convert_to_geoarrow_encoding(input_path)
             with pq.ParquetWriter(
@@ -79,8 +80,8 @@ def main(input: Path, output: Path):
 
     # TODO: figure out how to set custom metadata on the _metadata file
     # It isn't possible to update the dict stored in FileMetaData.metadata
-    for file_name, metadata in zip(file_names, metadata_collector):
-        metadata.set_file_path(file_name)
+    for relative_file_path, metadata in zip(relative_file_paths, metadata_collector):
+        metadata.set_file_path(relative_file_path)
 
     full_metadata = metadata_collector[0]
     for _meta in metadata_collector[1:]:
